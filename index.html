@@ -55,6 +55,19 @@ img { max-width:100%; display:block; }
   .nav-mobile { display:block; }
 }
 
+/* Mobile Menu */
+.mobile-menu{position:fixed;top:0;right:-100%;width:280px;height:100vh;background:var(--bg2);border-left:1px solid rgba(255,255,255,.06);z-index:200;transition:right .3s ease;padding:80px 32px 40px;display:flex;flex-direction:column;gap:0}
+.mobile-menu.open{right:0}
+.mobile-menu a{display:block;padding:16px 0;color:var(--t2);font-size:15px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:color .2s;text-decoration:none}
+.mobile-menu a:hover,.mobile-menu a.active{color:var(--white)}
+.mobile-menu .mobile-login{display:inline-block;background:var(--accent);color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;font-size:13px;text-align:center;margin-top:16px;letter-spacing:.5px}
+.mobile-menu .mobile-cart{display:flex;align-items:center;gap:10px;padding:16px 0;color:var(--t2);font-size:15px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.mobile-menu .mobile-cart svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5}
+.mobile-close{position:absolute;top:20px;right:20px;background:none;border:none;cursor:pointer;padding:8px}
+.mobile-close svg{width:24px;height:24px;stroke:var(--t2);fill:none;stroke-width:2}
+.mobile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;display:none}
+.mobile-overlay.open{display:block}
+
 /* ===== HERO ===== */
 .hero { padding:160px 0 100px; position:relative; overflow:hidden; min-height:90vh; display:flex; align-items:center; }
 .hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 20% 50%, var(--accent-glow) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(172,102,167,.06) 0%, transparent 50%); pointer-events:none; }
@@ -188,6 +201,20 @@ img { max-width:100%; display:block; }
     </div>
   </div>
 </nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileNav()"></div>
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="toggleMobileNav()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="index.html" class="active">Home</a>
+  <a href="shop.html">Shop</a>
+  <a href="about.html">About</a>
+  <a href="partners.html">Partners</a>
+  <a href="contact.html">Contact</a>
+  <a href="assessment.html" style="color:var(--accent)">OH Score™</a>
+  <div class="mobile-cart" onclick="window.location.href='cart.html'"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> Cart</div>
+  <a href="shop.html" class="mobile-login">LOG IN / SIGN UP</a>
+</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -349,6 +376,12 @@ img { max-width:100%; display:block; }
 </footer>
 
 <script>
+// Mobile Nav
+function toggleMobileNav(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
+}
+
 // Product Data
 const PRODUCTS = [
   { id:"kpv", name:"KPV", content:"10mg", form:"Lyophilized", price:49.99, category:"recovery", badge:"" },
