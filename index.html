@@ -71,10 +71,10 @@ img { max-width:100%; display:block; }
 .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
 .hero-visual { display:flex; justify-content:center; align-items:center; }
 .hero-product-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.hero-vial { background:var(--bg3); border:1px solid var(--t4); border-radius:var(--radius); padding:32px 24px; text-align:center; transition:all .3s; }
+.hero-vial { background:var(--bg3); border:1px solid var(--t4); border-radius:var(--radius); padding:20px 16px; text-align:center; transition:all .3s; overflow:hidden; }
 .hero-vial:hover { border-color:var(--accent); transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,.4); }
-.hero-vial .vial-icon { width:48px; height:80px; margin:0 auto 16px; background:linear-gradient(135deg, var(--accent-glow2), rgba(255,255,255,.05)); border-radius:6px; border:1px solid var(--t4); display:flex; align-items:center; justify-content:center; }
-.hero-vial .vial-icon span { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent); font-weight:700; }
+.hero-vial .hero-vial-img { width:100%; height:140px; object-fit:cover; border-radius:8px; margin-bottom:12px; transition:transform .3s; }
+.hero-vial:hover .hero-vial-img { transform:scale(1.05); }
 .hero-vial h3 { font-size:14px; font-weight:600; color:var(--white); margin-bottom:4px; }
 .hero-vial p { font-size:12px; color:var(--t3); }
 
@@ -203,22 +203,22 @@ img { max-width:100%; display:block; }
       <div class="hero-visual fade-up fade-up-d2">
         <div class="hero-product-grid">
           <div class="hero-vial">
-            <div class="vial-icon"><span>GLP</span></div>
+            <img src="images/glp3r.png" alt="GLP-3R" class="hero-vial-img">
             <h3>GLP-3R</h3>
             <p>10mg Lyophilized</p>
           </div>
           <div class="hero-vial">
-            <div class="vial-icon"><span>BPC</span></div>
+            <img src="images/bpc157.png" alt="BPC-157" class="hero-vial-img">
             <h3>BPC-157</h3>
             <p>10mg Lyophilized</p>
           </div>
           <div class="hero-vial">
-            <div class="vial-icon"><span>NAD</span></div>
+            <img src="images/nad.png" alt="NAD+" class="hero-vial-img">
             <h3>NAD+</h3>
             <p>500mg Lyophilized</p>
           </div>
           <div class="hero-vial">
-            <div class="vial-icon"><span>GHK</span></div>
+            <img src="images/ghkcu.png" alt="GHK-Cu" class="hero-vial-img">
             <h3>GHK-Cu</h3>
             <p>50mg Lyophilized</p>
           </div>
