@@ -324,7 +324,7 @@ function addToCart(id){
   updateCartCount();showToast(p.name+' added to cart');
 }
 function updateCartCount(){const el=document.getElementById('cartCount');if(el)el.textContent=cart.reduce((s,i)=>s+i.qty,0);}
-function toggleCart(){}
+function toggleCart(){window.location.href='cart.html';}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 // ─── INIT ───

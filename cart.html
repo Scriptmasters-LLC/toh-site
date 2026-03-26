@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cart | The Optimized Human</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#111;--bg2:#1a1a1a;--bg3:#222;--accent:#AC66A7;--accent-light:#c88cc4;--accent-glow:rgba(172,102,167,.12);--white:#fff;--t1:#eee;--t2:#999;--t3:#666;--t4:#444;--green:#34D399;--red:#EF4444;--radius:12px;--max-w:1280px}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;-webkit-font-smoothing:antialiased}a{color:var(--accent);text-decoration:none;transition:color .2s}a:hover{color:var(--accent-light)}img{max-width:100%;display:block}.container{max-width:var(--max-w);margin:0 auto;padding:0 32px}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(17,17,17,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05)}.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:72px}.nav-logo{display:flex;align-items:center;gap:12px}.nav-logo .mark{font-weight:900;font-size:28px;color:var(--accent);letter-spacing:-1px}.nav-logo .wordmark{line-height:1.1}.nav-logo .wordmark .sm{font-size:9px;font-weight:500;color:var(--t2);letter-spacing:2px;text-transform:uppercase}.nav-logo .wordmark .lg{font-size:16px;font-weight:700;color:var(--white)}.nav-links{display:flex;align-items:center;gap:32px}.nav-links a{color:var(--t2);font-size:13px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;transition:color .2s}.nav-links a:hover,.nav-links a.active{color:var(--white)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.user-email{font-size:11px;color:var(--t3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{background:var(--bg3);border:1px solid var(--t4);border-radius:6px;padding:6px 12px;color:var(--t2);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;transition:all .2s}
+.logout-btn:hover{border-color:var(--accent);color:var(--white)}
+@media(max-width:768px){.nav-links{display:none}.user-email{display:none}}
+
+/* CART PAGE */
+.page-header{padding:120px 0 40px;border-bottom:1px solid rgba(255,255,255,.04)}.page-header h1{font-size:clamp(32px,4vw,48px);font-weight:800;color:var(--white);margin-bottom:8px}.page-header p{font-size:16px;color:var(--t3);font-weight:300}
+
+.cart-layout{display:grid;grid-template-columns:1fr 380px;gap:40px;padding:40px 0 80px}
+@media(max-width:900px){.cart-layout{grid-template-columns:1fr;gap:24px}}
+
+/* Cart Items */
+.cart-item{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center}
+.cart-item-img{width:100px;height:100px;min-width:100px;background:var(--bg3);border-radius:var(--radius);overflow:hidden}
+.cart-item-img img{width:100%;height:100%;object-fit:cover}
+.cart-item-info{flex:1}
+.cart-item-info h3{font-size:16px;font-weight:600;color:var(--white);margin-bottom:4px}
+.cart-item-info .meta{font-size:12px;color:var(--t3);margin-bottom:12px}
+.cart-item-info .item-price{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent);font-weight:600}
+.qty-controls{display:flex;align-items:center;gap:0;border:1px solid var(--t4);border-radius:8px;overflow:hidden}
+.qty-btn{width:36px;height:36px;background:var(--bg3);border:none;color:var(--t2);font-size:16px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.qty-btn:hover{background:var(--accent);color:var(--white)}
+.qty-val{width:40px;height:36px;background:var(--bg2);color:var(--white);font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--t4);border-right:1px solid var(--t4)}
+.cart-item-actions{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.cart-item-total{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--white)}
+.remove-btn{background:none;border:none;color:var(--t4);font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;transition:color .2s;padding:4px 0}
+.remove-btn:hover{color:var(--red)}
+
+/* Summary */
+.cart-summary{background:var(--bg2);border:1px solid var(--t4);border-radius:var(--radius);padding:32px 28px;position:sticky;top:96px;height:fit-content}
+.cart-summary h2{font-size:18px;font-weight:700;color:var(--white);margin-bottom:24px}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.summary-row .label{font-size:14px;color:var(--t2)}
+.summary-row .value{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--white);font-weight:600}
+.summary-total{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-top:8px}
+.summary-total .label{font-size:16px;font-weight:700;color:var(--white)}
+.summary-total .value{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--green)}
+.checkout-btn{width:100%;background:var(--accent);color:var(--white);border:none;border-radius:10px;padding:16px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:20px}
+.checkout-btn:hover{background:var(--accent-light);transform:translateY(-1px)}
+.continue-link{display:block;text-align:center;margin-top:16px;font-size:13px;color:var(--t3)}
+.continue-link:hover{color:var(--accent)}
+
+/* Empty Cart */
+.empty-cart{text-align:center;padding:80px 20px}
+.empty-cart .icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.empty-cart h2{font-size:22px;color:var(--white);margin-bottom:8px}
+.empty-cart p{font-size:14px;color:var(--t3);margin-bottom:24px}
+.empty-cart .btn{display:inline-block;background:var(--accent);color:var(--white);padding:14px 32px;border-radius:10px;font-weight:600;font-size:14px;transition:all .2s}
+.empty-cart .btn:hover{background:var(--accent-light)}
+
+/* Not logged in */
+.login-prompt{text-align:center;padding:120px 20px}
+.login-prompt h2{font-size:22px;color:var(--white);margin-bottom:8px}
+.login-prompt p{font-size:14px;color:var(--t3);margin-bottom:24px}
+.login-prompt .btn{display:inline-block;background:var(--accent);color:var(--white);padding:14px 32px;border-radius:10px;font-weight:600;font-size:14px}
+
+.footer{padding:60px 0 40px;border-top:1px solid rgba(255,255,255,.04)}.footer-bottom{display:flex;justify-content:space-between;align-items:center}.footer-bottom p{font-size:12px;color:var(--t4)}.footer-bottom .disclaimer{font-size:10px;color:var(--t4);max-width:500px;text-align:right;line-height:1.5}
+@media(max-width:768px){.footer-bottom{flex-direction:column;gap:12px;text-align:center}.footer-bottom .disclaimer{text-align:center}}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#000;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:1000;transform:translateY(80px);opacity:0;transition:all .3s ease}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="nav-inner">
+  <a href="index.html" class="nav-logo"><div class="mark">OH</div><div class="wordmark"><div class="sm">THE</div><div class="lg">Optimized Human</div></div></a>
+  <div class="nav-links"><a href="index.html">Home</a><a href="shop.html">Shop</a><a href="about.html">About</a><a href="partners.html">Partners</a><a href="contact.html">Contact</a><a href="assessment.html" style="color:var(--accent);font-weight:700">OH Score™</a></div>
+  <div class="nav-right">
+    <div id="navUser" style="display:none">
+      <span class="user-email" id="navEmail"></span>
+      <button class="logout-btn" onclick="handleLogout()">Log Out</button>
+    </div>
+  </div>
+</div></nav>
+
+<!-- NOT LOGGED IN -->
+<div id="loginPrompt" class="login-prompt" style="display:none">
+  <h2>Log in to view your cart</h2>
+  <p>You need an account to add items and checkout.</p>
+  <a href="shop.html" class="btn">Log In / Sign Up</a>
+</div>
+
+<!-- CART CONTENT -->
+<div id="cartContent" style="display:none">
+  <section class="page-header"><div class="container">
+    <h1>Your Cart</h1>
+    <p id="cartSubtitle">0 items</p>
+  </div></section>
+
+  <section><div class="container">
+    <!-- Empty state -->
+    <div id="emptyCart" class="empty-cart" style="display:none">
+      <div class="icon">🛒</div>
+      <h2>Your cart is empty</h2>
+      <p>Browse our research compound catalog and add products to get started.</p>
+      <a href="shop.html" class="btn">Shop All Products</a>
+    </div>
+
+    <!-- Cart with items -->
+    <div id="cartLayout" class="cart-layout" style="display:none">
+      <div>
+        <div id="cartItems"></div>
+      </div>
+      <div class="cart-summary">
+        <h2>Order Summary</h2>
+        <div class="summary-row">
+          <span class="label">Subtotal</span>
+          <span class="value" id="subtotal">$0.00</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Shipping</span>
+          <span class="value" style="color:var(--green)">Free</span>
+        </div>
+        <div class="summary-total">
+          <span class="label">Total</span>
+          <span class="value" id="totalPrice">$0.00</span>
+        </div>
+        <button class="checkout-btn" onclick="handleCheckout()">Proceed to Checkout</button>
+        <a href="shop.html" class="continue-link">← Continue Shopping</a>
+        <p style="font-size:10px;color:var(--t4);margin-top:16px;line-height:1.5;text-align:center">All products are sold for laboratory research purposes only. Not for human or animal consumption.</p>
+      </div>
+    </div>
+  </div></section>
+</div>
+
+<footer class="footer"><div class="container"><div class="footer-bottom">
+  <p>&copy; 2026 The Optimized Human. All rights reserved.</p>
+  <div class="disclaimer">All products are sold strictly for laboratory research purposes only and are not intended for human or animal consumption.</div>
+</div></div></footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://qrozjbmimzcwegzolptm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyb3pqYm1pbXpjd2Vnem9scHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTQ1NDgsImV4cCI6MjA5MDEzMDU0OH0.JmmgwESE5BB3PMUFeWTJcX1G3iSVWr8-Sc57p3NNezw';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+
+const PRODUCTS = [
+  {id:"kpv",name:"KPV",content:"10mg",form:"Lyophilized",price:49.99,category:"recovery"},
+  {id:"ksptn",name:"KSPTN",content:"10mg",form:"Lyophilized",price:44.99,category:"hormonal"},
+  {id:"methblue",name:"Methylene Blue 1%",content:"60ml",form:"Liquid",price:33.99,category:"cognitive"},
+  {id:"tesa",name:"Tesamorelin",content:"10mg",form:"Lyophilized",price:74.99,category:"metabolic"},
+  {id:"amino5",name:"5-Amino-1MQ",content:"20mg",form:"Lyophilized",price:79.99,category:"metabolic"},
+  {id:"selank",name:"Selank (N-Acetyl)",content:"10mg",form:"Lyophilized",price:79.99,category:"cognitive"},
+  {id:"ta1",name:"Thymosin Alpha-1",content:"5mg",form:"Lyophilized",price:49.99,category:"hormonal"},
+  {id:"b12",name:"B12 (Methylated)",content:"10mg",form:"Liquid",price:67.99,category:"hormonal"},
+  {id:"glut",name:"Glutathione",content:"600mg",form:"Lyophilized",price:38.99,category:"hormonal"},
+  {id:"motsc",name:"MOTS-c",content:"10mg",form:"Lyophilized",price:55.99,category:"longevity"},
+  {id:"epi",name:"Epithalon",content:"10mg",form:"Lyophilized",price:42.99,category:"longevity"},
+  {id:"tb500",name:"TB-500",content:"10mg",form:"Lyophilized",price:64.99,category:"recovery"},
+  {id:"nad",name:"NAD+",content:"500mg",form:"Lyophilized",price:59.99,category:"longevity"},
+  {id:"ipa",name:"Ipamorelin",content:"10mg",form:"Lyophilized",price:59.99,category:"metabolic"},
+  {id:"bpc",name:"BPC-157",content:"10mg",form:"Lyophilized",price:64.99,category:"recovery"},
+  {id:"ghkcu",name:"GHK-Cu",content:"50mg",form:"Lyophilized",price:54.99,category:"aesthetic"},
+  {id:"glp3r",name:"GLP-3R",content:"10mg",form:"Lyophilized",price:89.99,category:"metabolic"},
+];
+const IMG_MAP = {kpv:'kpv',ksptn:'ksptn',methblue:'methblue',tesa:'tesamorelin',amino5:'amino5',selank:'selank',ta1:'ta1',b12:'b12',glut:'glutathione',motsc:'motsc',epi:'epithalon',tb500:'tb500',nad:'nad',ipa:'ipamorelin',bpc:'bpc157',ghkcu:'ghkcu',glp3r:'glp3r'};
+
+let cart = [];
+
+// ─── AUTH ───
+async function checkAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){currentUser=session.user;showCart();}
+  else showLoginPrompt();
+}
+sb.auth.onAuthStateChange((_,session)=>{
+  if(session){currentUser=session.user;showCart();}
+  else{currentUser=null;showLoginPrompt();}
+});
+
+function showCart(){
+  document.getElementById('loginPrompt').style.display='none';
+  document.getElementById('cartContent').style.display='block';
+  document.getElementById('navUser').style.display='flex';
+  document.getElementById('navEmail').textContent=currentUser?.email||'';
+  loadCart();
+}
+function showLoginPrompt(){
+  document.getElementById('loginPrompt').style.display='block';
+  document.getElementById('cartContent').style.display='none';
+  document.getElementById('navUser').style.display='none';
+}
+async function handleLogout(){await sb.auth.signOut();currentUser=null;cart=[];showLoginPrompt();}
+
+// ─── CART DATA ───
+async function loadCart(){
+  if(!currentUser)return;
+  try{
+    const{data,error}=await sb.from('cart_items').select('*').eq('user_id',currentUser.id);
+    if(!error&&data&&data.length>0){
+      cart=data.map(r=>{
+        const p=PRODUCTS.find(x=>x.id===r.product_id);
+        return{id:r.product_id,name:p?p.name:r.product_id,content:p?p.content:'',form:p?p.form:'',price:p?p.price:0,qty:r.quantity};
+      });
+    }else{
+      cart=JSON.parse(localStorage.getItem('toh_cart')||'[]');
+    }
+  }catch(e){cart=JSON.parse(localStorage.getItem('toh_cart')||'[]');}
+  renderCart();
+}
+
+async function updateQty(id,newQty){
+  if(newQty<1)return removeItem(id);
+  const item=cart.find(x=>x.id===id);
+  if(item)item.qty=newQty;
+  try{await sb.from('cart_items').upsert({user_id:currentUser.id,product_id:id,quantity:newQty,updated_at:new Date().toISOString()},{onConflict:'user_id,product_id'});}
+  catch(e){localStorage.setItem('toh_cart',JSON.stringify(cart));}
+  renderCart();
+}
+
+async function removeItem(id){
+  cart=cart.filter(x=>x.id!==id);
+  try{await sb.from('cart_items').delete().eq('user_id',currentUser.id).eq('product_id',id);}
+  catch(e){localStorage.setItem('toh_cart',JSON.stringify(cart));}
+  renderCart();
+  showToast('Item removed');
+}
+
+// ─── RENDER ───
+function renderCart(){
+  const itemCount=cart.reduce((s,i)=>s+i.qty,0);
+  const subtotal=cart.reduce((s,i)=>s+(i.price*i.qty),0);
+
+  document.getElementById('cartSubtitle').textContent=`${itemCount} item${itemCount!==1?'s':''}`;
+
+  if(cart.length===0){
+    document.getElementById('emptyCart').style.display='block';
+    document.getElementById('cartLayout').style.display='none';
+    return;
+  }
+
+  document.getElementById('emptyCart').style.display='none';
+  document.getElementById('cartLayout').style.display='grid';
+
+  const html=cart.map(item=>{
+    const img=IMG_MAP[item.id]||item.id;
+    const lineTotal=(item.price*item.qty).toFixed(2);
+    return `<div class="cart-item">
+      <div class="cart-item-img"><img src="images/${img}.png" alt="${item.name}"></div>
+      <div class="cart-item-info">
+        <h3>${item.name}</h3>
+        <div class="meta">${item.form||''} · ${item.content||''}</div>
+        <div class="item-price">$${item.price.toFixed(2)} each</div>
+      </div>
+      <div class="cart-item-actions">
+        <div class="cart-item-total">$${lineTotal}</div>
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="updateQty('${item.id}',${item.qty-1})">−</button>
+          <div class="qty-val">${item.qty}</div>
+          <button class="qty-btn" onclick="updateQty('${item.id}',${item.qty+1})">+</button>
+        </div>
+        <button class="remove-btn" onclick="removeItem('${item.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cartItems').innerHTML=html;
+  document.getElementById('subtotal').textContent='$'+subtotal.toFixed(2);
+  document.getElementById('totalPrice').textContent='$'+subtotal.toFixed(2);
+}
+
+function handleCheckout(){
+  // 🔌 CONNECT PAYMENT EMBED / CHECKOUT FLOW HERE
+  showToast('Checkout coming soon — contact support@theoptimizedhumanproject.com to place an order');
+}
+
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+checkAuth();
+</script>
+</body>
+</html>
