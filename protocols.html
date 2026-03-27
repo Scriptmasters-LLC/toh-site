@@ -124,6 +124,19 @@
   .compound-table .hide-mobile{display:none}
   .protocol-total .total-price{font-size:22px}
 }
+.mobile-menu{position:fixed;top:0;right:-100%;width:280px;height:100vh;background:#1a1a1a;border-left:1px solid rgba(255,255,255,.06);z-index:200;transition:right .3s ease;padding:80px 32px 40px;display:flex;flex-direction:column;gap:0}
+.mobile-menu.open{right:0}
+.mobile-menu a{display:block;padding:16px 0;color:#999;font-size:15px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:color .2s;text-decoration:none}
+.mobile-menu a:hover,.mobile-menu a.active{color:#fff}
+.mobile-menu .mobile-login{display:inline-block;background:#AC66A7;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;font-size:13px;text-align:center;margin-top:16px;letter-spacing:.5px}
+.mobile-menu .mobile-cart{display:flex;align-items:center;gap:10px;padding:16px 0;color:#999;font-size:15px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.mobile-menu .mobile-cart svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5}
+.mobile-close{position:absolute;top:20px;right:20px;background:none;border:none;cursor:pointer;padding:8px}
+.mobile-close svg{width:24px;height:24px;stroke:#999;fill:none;stroke-width:2}
+.mobile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;display:none}
+.mobile-overlay.open{display:block}
+.toast{position:fixed;bottom:24px;right:24px;background:#34D399;color:#000;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:1000;transform:translateY(80px);opacity:0;transition:all .3s ease}
+.toast.show{transform:translateY(0);opacity:1}
 </style>
 </head>
 <body>
@@ -135,12 +148,13 @@
     <a href="index.html">Home</a>
     <a href="shop.html">Shop</a>
     <a href="protocols.html" class="active">Protocols</a>
-    <a href="coa.html">COA</a>
     <a href="about.html">About</a>
     <a href="partners.html">Partners</a>
     <a href="contact.html">Contact</a>
+    <a href="assessment.html" style="color:var(--accent);font-weight:700">OH Score™</a>
+    <a href="shop.html" style="background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;letter-spacing:.5px">LOG IN</a>
   </div>
-  <div class="nav-cart" onclick="toggleCart()">
+  <div class="nav-cart" onclick="window.location.href='cart.html'">
     <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
     <div class="cart-count" id="cartCount">0</div>
   </div>
@@ -148,6 +162,21 @@
     <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </div>
 </div></nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileNav()"></div>
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="toggleMobileNav()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="index.html">Home</a>
+  <a href="shop.html">Shop</a>
+  <a href="protocols.html" class="active">Protocols</a>
+  <a href="about.html">About</a>
+  <a href="partners.html">Partners</a>
+  <a href="contact.html">Contact</a>
+  <a href="assessment.html" style="color:#AC66A7">OH Score™</a>
+  <div class="mobile-cart" onclick="window.location.href='cart.html'"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> Cart</div>
+  <a href="shop.html" class="mobile-login">LOG IN / SIGN UP</a>
+</div>
 
 <!-- HEADER -->
 <section class="page-header">
@@ -220,6 +249,7 @@
   </div>
 </div></footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ==========================================
 // PRODUCT DATA (mirrors shop.html)
@@ -461,13 +491,56 @@ function filterProtocols(category) {
 }
 
 // ==========================================
-// CART SYSTEM (shared with shop.html via localStorage)
+// SUPABASE CART SYSTEM
 // ==========================================
-let cart = JSON.parse(localStorage.getItem('toh_cart') || '[]');
+const SUPABASE_URL = 'https://qrozjbmimzcwegzolptm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyb3pqYm1pbXpjd2Vnem9scHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTQ1NDgsImV4cCI6MjA5MDEzMDU0OH0.JmmgwESE5BB3PMUFeWTJcX1G3iSVWr8-Sc57p3NNezw';
+
+let sb, currentUser, cart = [];
+
+async function initSupabase() {
+  if (typeof window.supabase !== 'undefined') {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadCart();
+    }
+  }
+  updateCartCount();
+}
+
+async function loadCart() {
+  if (!currentUser || !sb) return;
+  try {
+    const { data, error } = await sb.from('cart_items').select('*').eq('user_id', currentUser.id);
+    if (!error && data) {
+      cart = data.map(r => ({
+        id: r.product_id,
+        name: PRODUCTS[r.product_id] ? PRODUCTS[r.product_id].name : r.product_id,
+        price: PRODUCTS[r.product_id] ? PRODUCTS[r.product_id].price : 0,
+        qty: r.quantity
+      }));
+    }
+  } catch (e) {}
+  updateCartCount();
+}
+
+async function saveCartItem(pid, qty) {
+  if (!currentUser || !sb) return;
+  try {
+    await sb.from('cart_items').upsert({
+      user_id: currentUser.id,
+      product_id: pid,
+      quantity: qty,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,product_id' });
+  } catch (e) {}
+}
 
 function updateCartCount() {
   const el = document.getElementById('cartCount');
-  if (el) el.textContent = cart.reduce((s,i) => s + i.qty, 0);
+  if (el) el.textContent = cart.reduce((s, i) => s + i.qty, 0);
 }
 
 function addToCart(id, qty) {
@@ -476,16 +549,23 @@ function addToCart(id, qty) {
   const existing = cart.find(x => x.id === id);
   if (existing) {
     existing.qty += qty;
+    saveCartItem(id, existing.qty);
   } else {
     cart.push({ id, name: prod.name + ' ' + prod.content, price: prod.price, qty });
+    saveCartItem(id, qty);
   }
-  localStorage.setItem('toh_cart', JSON.stringify(cart));
   updateCartCount();
 }
 
 function addProtocolToCart(protocolId) {
   const protocol = PROTOCOLS.find(p => p.id === protocolId);
   if (!protocol) return;
+  
+  if (!currentUser) {
+    // Not logged in — redirect to shop to create account first
+    window.location.href = 'shop.html';
+    return;
+  }
   
   // Add each compound at the specified quantity
   protocol.compounds.forEach(c => {
@@ -505,14 +585,14 @@ function addProtocolToCart(protocolId) {
   }
 }
 
-function toggleCart() {
-  // Navigate to shop for full cart view
-  window.location.href = 'shop.html';
+function toggleMobileNav() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
 }
 
 // Init
 renderAll();
-updateCartCount();
+initSupabase();
 </script>
 </body>
 </html>
