@@ -63,16 +63,24 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax NUMERIC(10,2) NOT NULL DEFAULT 0
 CREATE TABLE IF NOT EXISTS coupons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
-  discount_percent NUMERIC(5,2) NOT NULL,
+  discount_percent NUMERIC(5,2),          -- percentage off (e.g. 10 = 10%) — use this OR discount_amount, not both
+  discount_amount NUMERIC(10,2),          -- flat dollar off (e.g. 20 = $20 off)
+  customer_emails TEXT[],                 -- array of emails; if set, only these emails can use the code
+  expires_at TIMESTAMPTZ,                 -- auto-expires after this date (null = never)
+  max_uses INTEGER,                       -- max total uses (null = unlimited)
+  times_used INTEGER NOT NULL DEFAULT 0,  -- tracks how many times used
+  first_order_only BOOLEAN NOT NULL DEFAULT false,  -- if true, only works on customer's first order
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 
--- Allow anyone authenticated to read active coupons (for validation on checkout)
+-- Allow anyone authenticated to read active, non-expired coupons
 DROP POLICY IF EXISTS "Anyone can read active coupons" ON coupons;
-CREATE POLICY "Anyone can read active coupons" ON coupons FOR SELECT USING (active = true);
+CREATE POLICY "Anyone can read active coupons" ON coupons FOR SELECT USING (
+  active = true AND (expires_at IS NULL OR expires_at > NOW())
+);
 
 -- 6. ADD COUPON FIELDS TO ORDERS
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;

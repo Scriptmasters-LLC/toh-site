@@ -40,6 +40,31 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── Validate & increment coupon usage ───────────────────────
+    if (couponCode) {
+      const { data: coupon, error: couponErr } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("code", couponCode)
+        .eq("active", true)
+        .single();
+
+      if (couponErr || !coupon) throw new Error("Invalid coupon code");
+      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) throw new Error("Coupon expired");
+      if (coupon.max_uses !== null && coupon.times_used >= coupon.max_uses) throw new Error("Coupon usage limit reached");
+      if (coupon.customer_emails && coupon.customer_emails.length > 0) {
+        const allowed = coupon.customer_emails.map((e: string) => e.toLowerCase());
+        if (!allowed.includes(customerEmail.toLowerCase())) throw new Error("Coupon not valid for this account");
+      }
+      if (coupon.first_order_only) {
+        const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", userId);
+        if ((count || 0) > 0) throw new Error("Coupon only valid for first-time orders");
+      }
+
+      // Increment times_used
+      await supabase.from("coupons").update({ times_used: coupon.times_used + 1 }).eq("id", coupon.id);
+    }
+
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -140,7 +165,7 @@ Deno.serve(async (req) => {
     </table>
     <table class="totals" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px">
       <tr><td>Subtotal</td><td style="text-align:right">${fmt(subtotal)}</td></tr>
-      ${discountAmount > 0 ? `<tr><td>Discount (${couponCode})</td><td style="text-align:right;color:#34D399">-${fmt(discountAmount)}</td></tr>` : ""}
+      ${discountAmount > 0 ? `<tr><td>Discount${couponCode ? " (" + couponCode + ")" : ""}</td><td style="text-align:right;color:#34D399">-${fmt(discountAmount)}</td></tr>` : ""}
       ${shippingProtection ? `<tr><td>Shipping Protection</td><td style="text-align:right">${fmt(5)}</td></tr>` : ""}
       ${taxAmount > 0 ? `<tr><td>Tax</td><td style="text-align:right">${fmt(taxAmount)}</td></tr>` : ""}
       <tr><td>Shipping (Standard)</td><td style="text-align:right">${fmt(shipping)}</td></tr>
@@ -243,7 +268,7 @@ Deno.serve(async (req) => {
     </table>
     <table class="totals" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px">
       <tr><td>Subtotal</td><td style="text-align:right">${fmt(subtotal)}</td></tr>
-      ${discountAmount > 0 ? `<tr><td>Discount (${couponCode})</td><td style="text-align:right;color:#34D399">-${fmt(discountAmount)}</td></tr>` : ""}
+      ${discountAmount > 0 ? `<tr><td>Discount${couponCode ? " (" + couponCode + ")" : ""}</td><td style="text-align:right;color:#34D399">-${fmt(discountAmount)}</td></tr>` : ""}
       ${shippingProtection ? `<tr><td>Shipping Protection</td><td style="text-align:right">${fmt(5)}</td></tr>` : ""}
       ${taxAmount > 0 ? `<tr><td>Tax</td><td style="text-align:right">${fmt(taxAmount)}</td></tr>` : ""}
       <tr><td>Shipping (Standard)</td><td style="text-align:right">${fmt(shipping)}</td></tr>

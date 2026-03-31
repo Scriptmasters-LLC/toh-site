@@ -362,7 +362,7 @@ let currentUser = null;
 let cart = [];
 let shippingProtection = false;
 let billingSameAsShipping = true;
-let appliedCoupon = null; // { code, discount_percent }
+let appliedCoupon = null; // { code, discount_percent, discount_amount }
 
 // ─── AUTH ───
 async function init() {
@@ -413,7 +413,7 @@ async function loadCart() {
 
 function renderSidebar() {
   const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-  const discount = appliedCoupon ? subtotal * (appliedCoupon.discount_percent / 100) : 0;
+  const discount = appliedCoupon ? (appliedCoupon.discount_percent ? subtotal * (appliedCoupon.discount_percent / 100) : Math.min(appliedCoupon.discount_amount || 0, subtotal)) : 0;
   const discountedSubtotal = subtotal - discount;
   const prot = shippingProtection ? 5 : 0;
   const stateVal  = document.getElementById('state')?.value || '';
@@ -427,7 +427,8 @@ function renderSidebar() {
   if (appliedCoupon) {
     document.getElementById('sDiscountRow').style.display = 'flex';
     document.getElementById('sDiscount').textContent = '-$' + discount.toFixed(2);
-    document.getElementById('sDiscountLabel').textContent = '(' + appliedCoupon.code + ' ' + appliedCoupon.discount_percent + '% off)';
+    const discLabel = appliedCoupon.discount_percent ? appliedCoupon.discount_percent + '% off' : '$' + appliedCoupon.discount_amount.toFixed(2) + ' off';
+    document.getElementById('sDiscountLabel').textContent = '(' + appliedCoupon.code + ' ' + discLabel + ')';
   } else {
     document.getElementById('sDiscountRow').style.display = 'none';
   }
@@ -508,20 +509,59 @@ async function applyCoupon() {
   btn.textContent = 'Checking…';
   msg.textContent = '';
 
-  const { data, error } = await sb.from('coupons').select('code, discount_percent').eq('code', code).eq('active', true).single();
+  const { data, error } = await sb.from('coupons')
+    .select('code, discount_percent, discount_amount, customer_emails, expires_at, max_uses, times_used, first_order_only')
+    .eq('code', code).eq('active', true).single();
 
   if (error || !data) {
     msg.className = 'coupon-msg error';
     msg.textContent = 'Invalid or expired coupon code.';
-    btn.disabled = false;
-    btn.textContent = 'Apply';
-    return;
+    btn.disabled = false; btn.textContent = 'Apply'; return;
   }
 
-  appliedCoupon = { code: data.code, discount_percent: Number(data.discount_percent) };
+  // Check expiration
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    msg.className = 'coupon-msg error';
+    msg.textContent = 'This coupon has expired.';
+    btn.disabled = false; btn.textContent = 'Apply'; return;
+  }
+
+  // Check max uses
+  if (data.max_uses !== null && data.times_used >= data.max_uses) {
+    msg.className = 'coupon-msg error';
+    msg.textContent = 'This coupon has reached its usage limit.';
+    btn.disabled = false; btn.textContent = 'Apply'; return;
+  }
+
+  // Check email restriction
+  if (data.customer_emails && data.customer_emails.length > 0) {
+    const userEmail = currentUser.email.toLowerCase();
+    const allowed = data.customer_emails.map(e => e.toLowerCase());
+    if (!allowed.includes(userEmail)) {
+      msg.className = 'coupon-msg error';
+      msg.textContent = 'This coupon is not valid for your account.';
+      btn.disabled = false; btn.textContent = 'Apply'; return;
+    }
+  }
+
+  // Check first order only
+  if (data.first_order_only) {
+    const { count } = await sb.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+    if (count > 0) {
+      msg.className = 'coupon-msg error';
+      msg.textContent = 'This coupon is only valid for first-time orders.';
+      btn.disabled = false; btn.textContent = 'Apply'; return;
+    }
+  }
+
+  const pct = Number(data.discount_percent) || 0;
+  const amt = Number(data.discount_amount) || 0;
+  const tagLabel = pct ? pct + '% off' : '$' + amt.toFixed(2) + ' off';
+
+  appliedCoupon = { code: data.code, discount_percent: pct, discount_amount: amt };
   document.getElementById('couponInput').style.display = 'none';
   document.getElementById('couponApplied').style.display = 'flex';
-  document.getElementById('couponTag').textContent = '✓ ' + data.code + ' — ' + data.discount_percent + '% off';
+  document.getElementById('couponTag').textContent = '✓ ' + data.code + ' — ' + tagLabel;
   msg.className = 'coupon-msg success';
   msg.textContent = 'Coupon applied!';
   btn.disabled = false;
@@ -576,7 +616,7 @@ async function placeOrder() {
   }
 
   const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-  const discount = appliedCoupon ? subtotal * (appliedCoupon.discount_percent / 100) : 0;
+  const discount = appliedCoupon ? (appliedCoupon.discount_percent ? subtotal * (appliedCoupon.discount_percent / 100) : Math.min(appliedCoupon.discount_amount || 0, subtotal)) : 0;
   const discountedSubtotal = subtotal - discount;
   const taxRate = getTaxRate(state, country);
   const tax = discountedSubtotal * taxRate;
