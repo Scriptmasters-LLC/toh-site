@@ -132,6 +132,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="nav-section">Inventory</div>
     <div class="nav-item" onclick="switchView('inventory',this)"><span class="icon">&#9638;</span><span>Inventory</span></div>
     <div class="nav-item" onclick="switchView('lowstock',this)"><span class="icon">&#9888;</span><span>Low Stock</span><span class="badge" id="lowBadge" style="display:none">0</span></div>
+    <div class="nav-section">Marketing</div>
+    <div class="nav-item" onclick="switchView('coupons',this)"><span class="icon">&#9733;</span><span>Coupons</span></div>
     <div class="sidebar-user">
       <div class="name" id="userName">-</div>
       <div class="email" id="userEmail">-</div>
@@ -285,10 +287,69 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="loading" id="lowLoading"><div class="spinner"></div></div>
     </div>
 
+    <!-- VIEW 6: COUPONS -->
+    <div class="view" id="view-coupons">
+      <div class="page-title">Coupons</div>
+      <div class="page-sub">Create and manage discount codes</div>
+      <div class="stats" id="couponStats"></div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <input class="search-input" placeholder="Search codes..." oninput="filterCoupons(this.value)">
+          <select class="filter-select" onchange="filterCouponStatus(this.value)">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="expired">Expired</option>
+          </select>
+          <div class="toolbar-right"><button class="btn btn-primary btn-sm" onclick="openCouponModal()">+ New Coupon</button></div>
+        </div>
+        <table>
+          <thead><tr><th>Code</th><th>Discount</th><th>Uses</th><th>Restrictions</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="couponBody"></tbody>
+        </table>
+        <div class="loading" id="couponLoading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <!-- MODALS -->
+<div class="modal-overlay" id="modalCoupon">
+  <div class="modal">
+    <h3 id="couponModalTitle">Create Coupon</h3>
+    <input type="hidden" id="cpEditId" value="">
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>Coupon Code</label><input id="cpCode" placeholder="e.g., TOH10, PARTNER20" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>Status</label>
+        <select id="cpActive"><option value="true">Active</option><option value="false">Inactive</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Discount Type</label>
+        <select id="cpType"><option value="percentage">Percentage (%)</option><option value="dollar">Dollar ($)</option></select>
+      </div>
+      <div class="form-group"><label>Discount Value</label><input type="number" id="cpValue" step="0.01" min="0" placeholder="e.g., 10"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Max Uses (0 = unlimited)</label><input type="number" id="cpMaxUses" value="0" min="0"></div>
+      <div class="form-group"><label>Current Uses</label><input type="number" id="cpCurrentUses" value="0" min="0" readonly style="opacity:.5"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Expires</label><input type="date" id="cpExpiry"></div>
+      <div class="form-group"><label>First Order Only</label>
+        <select id="cpFirstOrder"><option value="false">No</option><option value="true">Yes</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Restricted Emails (comma-separated, leave blank for all)</label><input id="cpEmails" placeholder="e.g., vip@email.com, partner@gym.com"></div>
+    <div class="form-group"><label>Notes (optional)</label><textarea id="cpNotes" placeholder="Internal notes about this coupon"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modalCoupon')">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="cpDeleteBtn" onclick="deleteCoupon()" style="display:none">Delete</button>
+      <button class="btn btn-primary" onclick="saveCoupon()">Save Coupon</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modalShip">
   <div class="modal">
     <h3>Ship Order <span id="shipOrderNum"></span></h3>
@@ -405,11 +466,12 @@ function showApp() {
 
 // ─── DATA LOADING ───
 async function loadAllData() {
-  await Promise.all([loadProducts(), loadOrders()]);
+  await Promise.all([loadProducts(), loadOrders(), loadCoupons()]);
   renderInventory();
   renderLowStock();
   renderFulfillment();
   renderOrders();
+  renderCoupons();
 }
 
 async function loadProducts() {
@@ -433,6 +495,7 @@ function switchView(name, el) {
   if (name === 'orders') renderOrders();
   if (name === 'inventory') renderInventory();
   if (name === 'lowstock') renderLowStock();
+  if (name === 'coupons') renderCoupons();
   if (name === 'create') resetCreateOrder();
 }
 
@@ -895,6 +958,179 @@ async function confirmAdjust() {
   closeModal('modalAdjust');
   toast(activeAdjustProduct.name + ' adjusted to ' + newQty);
   await loadAllData();
+}
+
+// ─── VIEW 6: COUPONS ───
+// Schema: id, code, discount_percent, discount_amount, customer_emails (JSONB), 
+//         expires_at, is_active, max_uses, times_used, first_order_only, created_at
+let allCoupons = [];
+
+async function loadCoupons() {
+  const { data, error } = await sb.from('coupons').select('*').order('created_at', { ascending: false });
+  if (!error && data) allCoupons = data;
+}
+
+function renderCoupons() {
+  document.getElementById('couponLoading').style.display = 'none';
+  const now = new Date();
+  const active = allCoupons.filter(c => c.is_active && (!c.expires_at || new Date(c.expires_at) > now));
+  const totalUses = allCoupons.reduce((s, c) => s + (c.times_used || 0), 0);
+
+  document.getElementById('couponStats').innerHTML = `
+    <div class="stat-card"><div class="label">Total Coupons</div><div class="value">${allCoupons.length}</div></div>
+    <div class="stat-card good"><div class="label">Active</div><div class="value">${active.length}</div></div>
+    <div class="stat-card"><div class="label">Total Redemptions</div><div class="value">${totalUses}</div></div>
+  `;
+  renderCouponTable(allCoupons);
+}
+
+function getCouponDisplay(c) {
+  if (c.discount_percent && parseFloat(c.discount_percent) > 0) return parseFloat(c.discount_percent) + '% off';
+  if (c.discount_amount && parseFloat(c.discount_amount) > 0) return '$' + parseFloat(c.discount_amount).toFixed(2) + ' off';
+  return '-';
+}
+
+function getCouponType(c) {
+  if (c.discount_amount && parseFloat(c.discount_amount) > 0) return 'dollar';
+  return 'percentage';
+}
+
+function getCouponValue(c) {
+  if (c.discount_amount && parseFloat(c.discount_amount) > 0) return parseFloat(c.discount_amount);
+  return parseFloat(c.discount_percent || 0);
+}
+
+function renderCouponTable(list) {
+  const body = document.getElementById('couponBody');
+  if (list.length === 0) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:40px">No coupons yet. Create one above.</td></tr>'; return; }
+
+  const now = new Date();
+  body.innerHTML = list.map(c => {
+    const uses = c.times_used || 0;
+    const maxUses = c.max_uses || 0;
+    const isExpired = c.expires_at && new Date(c.expires_at) < now;
+    const isMaxed = maxUses > 0 && uses >= maxUses;
+
+    let statusBdg;
+    if (!c.is_active) statusBdg = '<span class="badge-gray">INACTIVE</span>';
+    else if (isExpired) statusBdg = '<span class="badge-red">EXPIRED</span>';
+    else if (isMaxed) statusBdg = '<span class="badge-yellow">MAXED</span>';
+    else statusBdg = '<span class="badge-green">ACTIVE</span>';
+
+    let restrictions = [];
+    const emails = c.customer_emails;
+    if (emails && Array.isArray(emails) && emails.length > 0) {
+      restrictions.push(emails.length + ' email' + (emails.length > 1 ? 's' : ''));
+    }
+    if (c.first_order_only) restrictions.push('1st order');
+    if (maxUses > 0) restrictions.push('max ' + maxUses);
+
+    return `<tr>
+      <td><strong class="mono" style="font-size:14px;color:var(--accent)">${(c.code || '').toUpperCase()}</strong></td>
+      <td>${getCouponDisplay(c)}</td>
+      <td class="mono">${uses}${maxUses > 0 ? '/' + maxUses : ''}</td>
+      <td style="font-size:12px">${restrictions.length > 0 ? restrictions.join(', ') : '<span style="color:var(--t3)">None</span>'}</td>
+      <td style="font-size:12px">${c.expires_at ? fmtDate(c.expires_at) : '<span style="color:var(--t3)">Never</span>'}</td>
+      <td>${statusBdg}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editCoupon('${c.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterCoupons(q) {
+  const filtered = allCoupons.filter(c => (c.code || '').toLowerCase().includes(q.toLowerCase()));
+  renderCouponTable(filtered);
+}
+
+function filterCouponStatus(s) {
+  if (!s) { renderCouponTable(allCoupons); return; }
+  const now = new Date();
+  const filtered = allCoupons.filter(c => {
+    const isExpired = c.expires_at && new Date(c.expires_at) < now;
+    if (s === 'active') return c.is_active && !isExpired;
+    if (s === 'inactive') return !c.is_active;
+    if (s === 'expired') return isExpired;
+    return true;
+  });
+  renderCouponTable(filtered);
+}
+
+function openCouponModal(coupon) {
+  document.getElementById('cpEditId').value = coupon ? coupon.id : '';
+  document.getElementById('couponModalTitle').textContent = coupon ? 'Edit Coupon' : 'Create Coupon';
+  document.getElementById('cpDeleteBtn').style.display = coupon ? 'inline-flex' : 'none';
+  document.getElementById('cpCode').value = coupon ? (coupon.code || '') : '';
+  document.getElementById('cpCode').readOnly = !!coupon; // don't allow code changes on edit
+  document.getElementById('cpActive').value = coupon ? String(coupon.is_active) : 'true';
+  document.getElementById('cpType').value = coupon ? getCouponType(coupon) : 'percentage';
+  document.getElementById('cpValue').value = coupon ? getCouponValue(coupon) : '';
+  document.getElementById('cpMaxUses').value = coupon ? (coupon.max_uses || 0) : 0;
+  document.getElementById('cpCurrentUses').value = coupon ? (coupon.times_used || 0) : 0;
+  document.getElementById('cpFirstOrder').value = coupon ? String(!!coupon.first_order_only) : 'false';
+
+  const emails = coupon ? (coupon.customer_emails || []) : [];
+  document.getElementById('cpEmails').value = Array.isArray(emails) ? emails.join(', ') : '';
+
+  document.getElementById('cpExpiry').value = coupon && coupon.expires_at ? coupon.expires_at.split('T')[0] : '';
+  document.getElementById('cpNotes').value = coupon ? (coupon.notes || '') : '';
+  showModal('modalCoupon');
+}
+
+function editCoupon(id) {
+  const c = allCoupons.find(x => x.id === id);
+  if (c) openCouponModal(c);
+}
+
+async function saveCoupon() {
+  const code = document.getElementById('cpCode').value.trim().toUpperCase();
+  if (!code) { toast('Coupon code is required', true); return; }
+  const discType = document.getElementById('cpType').value;
+  const value = parseFloat(document.getElementById('cpValue').value);
+  if (!value || value <= 0) { toast('Discount value is required', true); return; }
+
+  const emailStr = document.getElementById('cpEmails').value.trim();
+  const emails = emailStr ? emailStr.split(',').map(e => e.trim().toLowerCase()).filter(e => e) : [];
+
+  const expiryVal = document.getElementById('cpExpiry').value;
+
+  const record = {
+    code: code,
+    discount_percent: discType === 'percentage' ? value : null,
+    discount_amount: discType === 'dollar' ? value : null,
+    is_active: document.getElementById('cpActive').value === 'true',
+    max_uses: parseInt(document.getElementById('cpMaxUses').value) || 0,
+    first_order_only: document.getElementById('cpFirstOrder').value === 'true',
+    customer_emails: emails.length > 0 ? emails : null,
+    expires_at: expiryVal ? new Date(expiryVal + 'T23:59:59Z').toISOString() : null,
+  };
+
+  const editId = document.getElementById('cpEditId').value;
+  let error;
+
+  if (editId) {
+    ({ error } = await sb.from('coupons').update(record).eq('id', editId));
+  } else {
+    ({ error } = await sb.from('coupons').insert(record));
+  }
+
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  closeModal('modalCoupon');
+  toast(editId ? 'Coupon updated' : 'Coupon created: ' + code);
+  await loadCoupons();
+  renderCoupons();
+}
+
+async function deleteCoupon() {
+  const editId = document.getElementById('cpEditId').value;
+  if (!editId) return;
+  if (!confirm('Delete this coupon permanently?')) return;
+  const { error } = await sb.from('coupons').delete().eq('id', editId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  closeModal('modalCoupon');
+  toast('Coupon deleted');
+  await loadCoupons();
+  renderCoupons();
 }
 
 // ─── HELPERS ───
