@@ -10,13 +10,6 @@
 :root{--bg:#111;--bg2:#1a1a1a;--bg3:#222;--accent:#AC66A7;--accent-light:#c88cc4;--accent-glow:rgba(172,102,167,.12);--accent-glow2:rgba(172,102,167,.25);--white:#fff;--t1:#eee;--t2:#999;--t3:#666;--t4:#444;--green:#34D399;--red:#EF4444;--yellow:#F59E0B;--radius:12px;--max-w:1280px}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;-webkit-font-smoothing:antialiased}a{color:var(--accent);text-decoration:none;transition:color .2s}a:hover{color:var(--accent-light)}img{max-width:100%;display:block}.container{max-width:var(--max-w);margin:0 auto;padding:0 32px}
 
-/* NAV */
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(17,17,17,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05)}.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:72px}.nav-logo{display:flex;align-items:center;gap:12px}.nav-logo .mark{font-weight:900;font-size:28px;color:var(--accent);letter-spacing:-1px}.nav-logo .wordmark{line-height:1.1}.nav-logo .wordmark .sm{font-size:9px;font-weight:500;color:var(--t2);letter-spacing:2px;text-transform:uppercase}.nav-logo .wordmark .lg{font-size:16px;font-weight:700;color:var(--white)}.nav-links{display:flex;align-items:center;gap:32px}.nav-links a{color:var(--t2);font-size:13px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;transition:color .2s}.nav-links a:hover,.nav-links a.active{color:var(--white)}.nav-right{display:flex;align-items:center;gap:16px}.nav-user{font-size:12px;color:var(--t2)}.nav-user a{color:var(--accent);cursor:pointer}.nav-cart{position:relative;cursor:pointer;padding:8px}.nav-cart svg{width:22px;height:22px;stroke:var(--t2);fill:none;stroke-width:1.5;transition:stroke .2s}.nav-cart:hover svg{stroke:var(--white)}.cart-count{position:absolute;top:2px;right:0;background:var(--accent);color:var(--bg);font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center}
-
-/* HAMBURGER */
-.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;z-index:200}.hamburger span{width:24px;height:2px;background:var(--t2);transition:all .3s}.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}.hamburger.open span:nth-child(2){opacity:0}.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
-.mobile-menu{display:none;position:fixed;top:72px;left:0;right:0;background:rgba(17,17,17,.98);backdrop-filter:blur(20px);padding:24px 32px;border-bottom:1px solid rgba(255,255,255,.05);z-index:99}.mobile-menu.show{display:flex;flex-direction:column;gap:16px}.mobile-menu a{color:var(--t2);font-size:15px;font-weight:500;letter-spacing:.5px;text-transform:uppercase}.mobile-menu a:hover,.mobile-menu a.active{color:var(--white)}
-@media(max-width:768px){.nav-links{display:none}.hamburger{display:flex}}
 
 /* AUTH WALL */
 .auth-wall{max-width:420px;margin:140px auto 60px;padding:40px;background:var(--bg2);border:1px solid var(--t4);border-radius:var(--radius)}.auth-wall h2{font-size:24px;font-weight:700;color:var(--white);margin-bottom:8px;text-align:center}.auth-wall p{color:var(--t3);font-size:14px;text-align:center;margin-bottom:24px}
@@ -69,19 +62,7 @@
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="nav"><div class="nav-inner">
-  <a href="index.html" class="nav-logo"><div class="mark">OH</div><div class="wordmark"><div class="sm">THE</div><div class="lg">Optimized Human</div></div></a>
-  <div class="nav-links"><a href="index.html">Home</a><a href="shop.html" class="active">Shop</a><a href="protocols.html">Protocols</a><a href="about.html">About</a><a href="partners.html">Partners</a><a href="contact.html">Contact</a><a href="assessment.html" style="color:var(--accent);font-weight:700">OH Score&trade;</a></div>
-  <div class="nav-right">
-    <div class="nav-user" id="navUser"></div>
-    <div class="nav-cart" onclick="window.location.href='cart.html'"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><div class="cart-count" id="cartCount">0</div></div>
-    <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()"><span></span><span></span><span></span></div>
-  </div>
-</div></nav>
-<div class="mobile-menu" id="mobileMenu">
-  <a href="index.html">Home</a><a href="shop.html" class="active">Shop</a><a href="protocols.html">Protocols</a><a href="about.html">About</a><a href="partners.html">Partners</a><a href="contact.html">Contact</a><a href="assessment.html" style="color:var(--accent);font-weight:700">OH Score&trade;</a>
-</div>
+<script src="nav.js"></script>
 
 <!-- AUTH WALL -->
 <div class="auth-wall" id="authWall">
@@ -418,6 +399,8 @@ async function doLogout() {
   document.getElementById('authWall').style.display = 'block';
   document.getElementById('shopWrap').style.display = 'none';
   document.getElementById('navUser').innerHTML = '';
+  document.getElementById('navUser').style.display = 'none';
+  var _nl3 = document.getElementById('navLogin'); if (_nl3) _nl3.style.display = '';
   updateCartCount();
 }
 
@@ -430,6 +413,8 @@ async function checkAuth() {
     const meta = currentUser.user_metadata || {};
     const name = meta.first_name || currentUser.email;
     document.getElementById('navUser').innerHTML = `${name} &middot; <a onclick="doLogout()">Log Out</a>`;
+    document.getElementById('navUser').style.display = 'flex';
+    var _nl = document.getElementById('navLogin'); if (_nl) _nl.style.display = 'none';
     // Load stock data from Supabase, then render, then load cart
     await loadStock();
     renderAll();
@@ -438,14 +423,11 @@ async function checkAuth() {
     document.getElementById('authWall').style.display = 'block';
     document.getElementById('shopWrap').style.display = 'none';
     document.getElementById('navUser').innerHTML = '';
+    document.getElementById('navUser').style.display = 'none';
+    var _nl2 = document.getElementById('navLogin'); if (_nl2) _nl2.style.display = '';
   }
 }
 
-// ─── MOBILE MENU ───
-function toggleMobileMenu() {
-  document.getElementById('hamburger').classList.toggle('open');
-  document.getElementById('mobileMenu').classList.toggle('show');
-}
 
 // ─── INIT ───
 checkAuth();

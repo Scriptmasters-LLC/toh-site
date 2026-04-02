@@ -9,10 +9,6 @@
 :root{--bg:#111;--bg2:#1a1a1a;--bg3:#222;--accent:#AC66A7;--accent-light:#c88cc4;--accent-glow:rgba(172,102,167,.12);--accent-glow2:rgba(172,102,167,.25);--white:#fff;--t1:#eee;--t2:#999;--t3:#666;--t4:#444;--green:#34D399;--radius:12px;--max-w:1280px}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;-webkit-font-smoothing:antialiased}a{color:var(--accent);text-decoration:none;transition:color .2s}a:hover{color:var(--accent-light)}.container{max-width:var(--max-w);margin:0 auto;padding:0 32px}
 
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(17,17,17,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.05)}.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:72px}.nav-logo{display:flex;align-items:center;gap:12px;text-decoration:none}.nav-logo .mark{font-weight:900;font-size:28px;color:var(--accent);letter-spacing:-1px}.nav-logo .wordmark{line-height:1.1}.nav-logo .wordmark .sm{font-size:9px;font-weight:500;color:var(--t2);letter-spacing:2px;text-transform:uppercase}.nav-logo .wordmark .lg{font-size:16px;font-weight:700;color:var(--white)}.nav-links{display:flex;align-items:center;gap:32px}.nav-links a{color:var(--t2);font-size:13px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;transition:color .2s}.nav-links a:hover,.nav-links a.active{color:var(--white)}
-.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;z-index:200}.hamburger span{width:22px;height:2px;background:var(--t2);transition:all .3s}.hamburger:hover span{background:var(--white)}
-.mobile-menu{display:none;position:fixed;top:72px;left:0;right:0;bottom:0;background:rgba(17,17,17,.98);backdrop-filter:blur(20px);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:32px}.mobile-menu a{color:var(--t2);font-size:18px;font-weight:500;letter-spacing:1px;text-transform:uppercase}.mobile-menu a:hover,.mobile-menu a.active{color:var(--white)}.mobile-menu.open{display:flex}
-@media(max-width:768px){.nav-links{display:none}.hamburger{display:flex}}
 
 .page-header{padding:120px 0 40px;border-bottom:1px solid rgba(255,255,255,.04)}.page-header h1{font-size:clamp(28px,4vw,44px);font-weight:800;color:var(--white);margin-bottom:8px}.page-header p{font-size:16px;color:var(--t3);font-weight:300}.page-header .stat-row{display:flex;gap:24px;margin-top:16px;flex-wrap:wrap}.page-header .stat{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);letter-spacing:.5px}
 
@@ -127,17 +123,7 @@
 </style>
 </head>
 <body>
-
-<nav class="nav"><div class="nav-inner">
-  <a href="index.html" class="nav-logo"><div class="mark">OH</div><div class="wordmark"><div class="sm">THE</div><div class="lg">Optimized Human</div></div></a>
-  <div class="nav-links">
-    <a href="index.html">Home</a><a href="shop.html">Shop</a><a href="supplements.html" class="active">Supplements</a><a href="coa.html">COA</a><a href="about.html">About</a><a href="partners.html">Partners</a><a href="contact.html">Contact</a>
-  </div>
-  <div class="hamburger" onclick="toggleMobile()"><span></span><span></span><span></span></div>
-</div></nav>
-<div class="mobile-menu" id="mobileMenu">
-  <a href="index.html">Home</a><a href="shop.html">Shop</a><a href="supplements.html" class="active">Supplements</a><a href="coa.html">COA</a><a href="about.html">About</a><a href="partners.html">Partners</a><a href="contact.html">Contact</a>
-</div>
+<script src="nav.js"></script>
 
 <section class="page-header"><div class="container">
   <h1>OTC Supplement Database</h1>
@@ -1081,9 +1067,6 @@ function renderStacks(){
   el.innerHTML=h+'</div>';
 }
 function toggleStack(i){openStack=openStack===i?null:i;renderStacks();}
-
-// ═══ MOBILE MENU ═══
-function toggleMobile(){document.getElementById("mobileMenu").classList.toggle("open");}
 
 // ═══ INIT ═══
 render();
