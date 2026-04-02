@@ -423,9 +423,9 @@ h2{font-size:clamp(20px,3.5vw,28px);font-weight:700;color:#fff;line-height:1.3;m
     <h3>Want to browse more?</h3>
     <p>All products include published Certificates of Analysis. Browse our full catalog or check out protocol bundles.</p>
     <div class="btns">
-      <a href="shop.html" class="btn-cta" style="font-size:13px;padding:12px 24px">Shop All Products</a>
-      <a href="protocols.html" class="btn-outline">View Protocol Bundles</a>
-      <a href="calculator.html" class="btn-outline">Reconstitution Calculator</a>
+      <a href="shop.html?utm_source=assessment&utm_medium=cta&utm_content=results" class="btn-cta" style="font-size:13px;padding:12px 24px">Shop All Products</a>
+      <a href="protocols.html?utm_source=assessment&utm_medium=cta&utm_content=results" class="btn-outline">View Protocol Bundles</a>
+      <a href="calculator.html?utm_source=assessment&utm_medium=cta&utm_content=results" class="btn-outline">Reconstitution Calculator</a>
     </div>
   </div>
 
@@ -724,6 +724,11 @@ function submitGate() {
       name: name,
       email: email,
 
+      // Source tracking
+      utm_source: 'assessment',
+      utm_medium: 'oh_score',
+      utm_content: tier.name.toLowerCase(),
+
       // OH Score results
       score: score,
       tier: tier.name,
@@ -775,10 +780,10 @@ function submitGate() {
 }
 
 function getTier(score) {
-  if (score < 40) return { name: 'Depleted', css: 'tier-depleted', rung: 0, msg: "Your body is running on fumes. The good news? You don't need a complete overhaul — you need the 5 SHIFT habits installed. Start the free challenge, build the floor, then we build on top of it.", cta: 'Start the Free SHIFT Challenge', url: '#SHIFT_CHALLENGE_URL' };
-  if (score < 60) return { name: 'Struggling', css: 'tier-struggling', rung: 0, msg: "You've got awareness but no system. You're making moves, just not the right ones consistently. The SHIFT Challenge locks in the non-negotiables. Once those are habits, labs show you exactly what to optimize next.", cta: 'Start the Free SHIFT Challenge', url: '#SHIFT_CHALLENGE_URL' };
-  if (score < 78) return { name: 'Functional', css: 'tier-functional', rung: 1, msg: "You're not broken — you're leaving performance on the table. Your foundation is decent. Now it's time to get precise. Labs and targeted supplementation will close the gap between 'fine' and 'optimized.'", cta: 'Book Your Lab Review', url: '#LAB_REVIEW_URL' };
-  return { name: 'Optimized', css: 'tier-optimized', rung: 2, msg: "You're in the top tier. Habits dialed, inputs clean. The next level is biological fine-tuning — peptides, hormone optimization, and 1:1 coaching to squeeze out the remaining edge.", cta: 'Book a Strategy Call', url: '#STRATEGY_CALL_URL' };
+  if (score < 40) return { name: 'Depleted', css: 'tier-depleted', rung: 0, msg: "Your body is running on fumes. The good news? You don't need a complete overhaul — you need the 5 SHIFT habits installed. Start the free challenge, build the floor, then we build on top of it.", cta: 'Start the Free SHIFT Challenge', url: '#SHIFT_CHALLENGE_URL?utm_source=assessment&utm_medium=cta&utm_content=depleted' };
+  if (score < 60) return { name: 'Struggling', css: 'tier-struggling', rung: 0, msg: "You've got awareness but no system. You're making moves, just not the right ones consistently. The SHIFT Challenge locks in the non-negotiables. Once those are habits, labs show you exactly what to optimize next.", cta: 'Start the Free SHIFT Challenge', url: '#SHIFT_CHALLENGE_URL?utm_source=assessment&utm_medium=cta&utm_content=struggling' };
+  if (score < 78) return { name: 'Functional', css: 'tier-functional', rung: 1, msg: "You're not broken — you're leaving performance on the table. Your foundation is decent. Now it's time to get precise. Labs and targeted supplementation will close the gap between 'fine' and 'optimized.'", cta: 'Book Your Lab Review', url: '#LAB_REVIEW_URL?utm_source=assessment&utm_medium=cta&utm_content=functional' };
+  return { name: 'Optimized', css: 'tier-optimized', rung: 2, msg: "You're in the top tier. Habits dialed, inputs clean. The next level is biological fine-tuning — peptides, hormone optimization, and 1:1 coaching to squeeze out the remaining edge.", cta: 'Book a Strategy Call', url: '#STRATEGY_CALL_URL?utm_source=assessment&utm_medium=cta&utm_content=optimized' };
 }
 
 function getWeakestPillar() {
@@ -1132,7 +1137,7 @@ async function initSbCart() {
 }
 
 async function addOneToCart(compoundKey) {
-  if (!sbUser) { window.location.href = 'shop.html'; return; }
+  if (!sbUser) { window.location.href = 'shop.html?utm_source=assessment&utm_medium=cart&utm_content=add_to_cart'; return; }
   const shopId = SHOP_ID_MAP[compoundKey] || compoundKey;
   try {
     // Get current qty
@@ -1149,7 +1154,7 @@ async function addOneToCart(compoundKey) {
 }
 
 async function addAllToCart() {
-  if (!sbUser) { window.location.href = 'shop.html'; return; }
+  if (!sbUser) { window.location.href = 'shop.html?utm_source=assessment&utm_medium=cart&utm_content=add_to_cart'; return; }
   for (const r of lastRecs) {
     const shopId = SHOP_ID_MAP[r.key] || r.key;
     try {
