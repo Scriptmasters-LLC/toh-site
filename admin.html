@@ -480,8 +480,36 @@ async function loadProducts() {
 }
 
 async function loadOrders() {
-  const { data, error } = await sb.from('orders').select(`*, customers(first_name, last_name, email), order_items(*, products(name, content))`).order('created_at', { ascending: false }).limit(200);
+  const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false }).limit(200);
   if (!error && data) allOrders = data;
+}
+
+// Helper: get customer name from order (works for both checkout orders and manual orders)
+function getCustomerName(o) {
+  return o.customer_name || '';
+}
+function getCustomerEmail(o) {
+  return o.customer_email || '';
+}
+// Helper: parse items from JSONB (checkout orders) or order_items join (manual orders)
+function getOrderItems(o) {
+  if (o.items && Array.isArray(o.items)) {
+    return o.items.map(i => `${i.name || '?'} ${i.content || ''} x${i.qty || 1}`).join(', ');
+  }
+  return '';
+}
+function getOrderItemRows(o) {
+  if (o.items && Array.isArray(o.items)) {
+    return o.items.map(i => `<tr><td>${i.name || '?'} ${i.content || ''}</td><td class="mono">${i.qty || 1}</td><td class="mono">$${parseFloat(i.price || 0).toFixed(2)}</td><td>${statusBadge('pending')}</td></tr>`).join('');
+  }
+  return '<tr><td colspan="4" style="color:var(--t3)">No line items</td></tr>';
+}
+// Helper: format shipping address from JSONB
+function fmtAddress(o) {
+  const a = o.shipping_address;
+  if (!a) return '';
+  if (typeof a === 'string') return a;
+  return [a.firstName + ' ' + a.lastName, a.address1, a.address2, [a.city, a.state, a.zip].filter(Boolean).join(', '), a.country || ''].filter(Boolean).join('<br>');
 }
 
 // ─── VIEW SWITCHING ───
@@ -501,7 +529,7 @@ function switchView(name, el) {
 
 // ─── VIEW 1: FULFILLMENT ───
 function renderFulfillment() {
-  fulfillOrders = allOrders.filter(o => ['paid','processing','partial_shipped'].includes(o.status) && o.payment_status === 'paid');
+  fulfillOrders = allOrders.filter(o => ['pending','paid','processing','partial_shipped'].includes(o.status));
 
   const badge = document.getElementById('fulfillBadge');
   if (fulfillOrders.length > 0) { badge.style.display = 'inline'; badge.textContent = fulfillOrders.length; }
@@ -520,12 +548,10 @@ function renderFulfillTable(orders) {
   const body = document.getElementById('fulfillBody');
   if (orders.length === 0) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:40px">No orders awaiting fulfillment</td></tr>'; return; }
   body.innerHTML = orders.map(o => {
-    const c = o.customers || {};
-    const items = (o.order_items || []).map(i => `${i.products?.name || '?'} ${i.products?.content || ''} x${i.quantity}`).join(', ');
     return `<tr>
       <td class="mono">TOH-${o.order_number}</td>
-      <td>${c.first_name || ''} ${c.last_name || ''}<br><span style="font-size:11px;color:var(--t3)">${c.email || ''}</span></td>
-      <td style="max-width:200px;font-size:12px">${items}</td>
+      <td>${getCustomerName(o)}<br><span style="font-size:11px;color:var(--t3)">${getCustomerEmail(o)}</span></td>
+      <td style="max-width:200px;font-size:12px">${getOrderItems(o)}</td>
       <td class="mono">$${parseFloat(o.total || 0).toFixed(2)}</td>
       <td>${channelBadge(o.channel)}</td>
       <td style="font-size:12px">${fmtDate(o.created_at)}</td>
@@ -536,8 +562,7 @@ function renderFulfillTable(orders) {
 
 function filterFulfillment(q) {
   const filtered = fulfillOrders.filter(o => {
-    const c = o.customers || {};
-    const s = `TOH-${o.order_number} ${c.first_name} ${c.last_name} ${c.email}`.toLowerCase();
+    const s = `TOH-${o.order_number} ${getCustomerName(o)} ${getCustomerEmail(o)}`.toLowerCase();
     return s.includes(q.toLowerCase());
   });
   renderFulfillTable(filtered);
@@ -558,10 +583,9 @@ function renderOrdersTable(orders) {
   const body = document.getElementById('ordersBody');
   if (orders.length === 0) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--t3);padding:40px">No orders found</td></tr>'; return; }
   body.innerHTML = orders.map(o => {
-    const c = o.customers || {};
     return `<tr>
       <td class="mono">TOH-${o.order_number}</td>
-      <td>${c.first_name || ''} ${c.last_name || ''}<br><span style="font-size:11px;color:var(--t3)">${c.email || ''}</span></td>
+      <td>${getCustomerName(o)}<br><span style="font-size:11px;color:var(--t3)">${getCustomerEmail(o)}</span></td>
       <td>${statusBadge(o.status)}</td>
       <td>${paymentBadge(o.payment_status)}</td>
       <td>${channelBadge(o.channel)}</td>
@@ -577,8 +601,7 @@ function searchOrders() {
   const status = document.getElementById('orderStatusFilter').value;
   const channel = document.getElementById('orderChannelFilter').value;
   const filtered = allOrders.filter(o => {
-    const c = o.customers || {};
-    const s = `TOH-${o.order_number} ${c.first_name} ${c.last_name} ${c.email}`.toLowerCase();
+    const s = `TOH-${o.order_number} ${getCustomerName(o)} ${getCustomerEmail(o)}`.toLowerCase();
     return (!q || s.includes(q)) && (!status || o.status === status) && (!channel || o.channel === channel);
   });
   renderOrdersTable(filtered);
@@ -587,23 +610,30 @@ function searchOrders() {
 function openOrderDetail(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
-  const c = o.customers || {};
   document.getElementById('detailOrderNum').textContent = 'TOH-' + o.order_number;
   document.getElementById('detailContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div><span style="color:var(--t3);font-size:12px">Customer</span><br>${c.first_name || ''} ${c.last_name || ''}<br><span style="color:var(--t3);font-size:12px">${c.email || ''}</span></div>
+      <div><span style="color:var(--t3);font-size:12px">Customer</span><br>${getCustomerName(o)}<br><span style="color:var(--t3);font-size:12px">${getCustomerEmail(o)}</span></div>
       <div><span style="color:var(--t3);font-size:12px">Channel</span><br>${channelBadge(o.channel)}</div>
       <div><span style="color:var(--t3);font-size:12px">Status</span><br>${statusBadge(o.status)}</div>
       <div><span style="color:var(--t3);font-size:12px">Payment</span><br>${paymentBadge(o.payment_status)}</div>
       <div><span style="color:var(--t3);font-size:12px">Total</span><br><span class="mono" style="font-size:20px;color:var(--accent)">$${parseFloat(o.total || 0).toFixed(2)}</span></div>
       <div><span style="color:var(--t3);font-size:12px">Date</span><br>${fmtDate(o.created_at)}</div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div><span style="color:var(--t3);font-size:12px">Subtotal</span><br><span class="mono">$${parseFloat(o.subtotal || 0).toFixed(2)}</span></div>
+      <div><span style="color:var(--t3);font-size:12px">Shipping</span><br><span class="mono">$${parseFloat(o.shipping || 0).toFixed(2)}</span></div>
+      ${o.shipping_protection > 0 ? `<div><span style="color:var(--t3);font-size:12px">Shipping Protection</span><br><span class="mono">$${parseFloat(o.shipping_protection).toFixed(2)}</span></div>` : ''}
+      ${o.tax > 0 ? `<div><span style="color:var(--t3);font-size:12px">Tax</span><br><span class="mono">$${parseFloat(o.tax).toFixed(2)}</span></div>` : ''}
+      ${o.coupon_code ? `<div><span style="color:var(--t3);font-size:12px">Coupon</span><br><span style="color:var(--green)">${o.coupon_code} (-$${parseFloat(o.coupon_discount || 0).toFixed(2)})</span></div>` : ''}
+    </div>
     ${o.tracking_number ? `<div style="margin-bottom:12px"><span style="color:var(--t3);font-size:12px">Tracking</span><br><span class="mono">${o.tracking_number}</span> (${o.tracking_carrier || 'N/A'})</div>` : ''}
-    ${o.shipping_address ? `<div style="margin-bottom:12px"><span style="color:var(--t3);font-size:12px">Address</span><br>${o.shipping_address}</div>` : ''}
+    <div style="margin-bottom:12px"><span style="color:var(--t3);font-size:12px">Shipping Address</span><br>${fmtAddress(o)}</div>
+    ${o.phone || (o.shipping_address && o.shipping_address.phone) ? `<div style="margin-bottom:12px"><span style="color:var(--t3);font-size:12px">Phone</span><br>${o.shipping_address?.phone || ''}</div>` : ''}
     ${o.notes ? `<div style="margin-bottom:12px"><span style="color:var(--t3);font-size:12px">Notes</span><br>${o.notes}</div>` : ''}
     <div style="margin-top:16px;border-top:1px solid var(--t4);padding-top:16px"><span style="color:var(--t3);font-size:12px;text-transform:uppercase;letter-spacing:1px">Line Items</span></div>
     <table style="margin-top:8px"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Fulfillment</th></tr></thead><tbody>
-    ${(o.order_items || []).map(i => `<tr><td>${i.products?.name || '?'} ${i.products?.content || ''}</td><td class="mono">${i.quantity}</td><td class="mono">$${parseFloat(i.unit_price || 0).toFixed(2)}</td><td>${itemFulfillBadge(i.fulfillment)}</td></tr>`).join('')}
+    ${getOrderItemRows(o)}
     </tbody></table>
   `;
   showModal('modalOrderDetail');
