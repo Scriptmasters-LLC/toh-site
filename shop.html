@@ -395,7 +395,7 @@ async function doReset() {
   const msg = document.getElementById('loginMsg');
   if (!email) { msg.className = 'auth-msg error'; msg.textContent = 'Enter your email first.'; return; }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/shop.html')
+    redirectTo: 'https://www.theoptimizedhumanproject.com/shop.html'
   });
   if (error) { msg.className = 'auth-msg error'; msg.textContent = error.message; }
   else { msg.className = 'auth-msg success'; msg.textContent = 'Password reset link sent! Check your email.'; }
